@@ -30,7 +30,8 @@ pub(crate) struct FilesConfig {
 #[derive(Deserialize, Serialize, Clone)]
 pub(crate) struct SharedConfig {
     pub(crate) n_endos: usize,
-    pub(crate) n_steps_burn_in: usize,
+    pub(crate) n_steps_burn_in: Option<usize>,
+    pub(crate) var_ratio_burn_in: Option<f64>,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -46,7 +47,8 @@ pub(crate) struct TrainConfig {
 #[derive(Deserialize, Serialize, Clone)]
 pub(crate) struct ClassifyConfig {
     pub(crate) params_override: Option<ParamsOverride>,
-    pub(crate) n_samples: usize,
+    pub(crate) n_samples: Option<usize>,
+    pub(crate) var_ratio: Option<f64>,
     pub(crate) n_parallel: Option<usize>,
     pub(crate) out_file: String,
     pub(crate) only_ids: Option<Vec<String>>,

@@ -18,6 +18,7 @@ use crate::train::param_meta_stats::ParamMetaStats;
 use crate::params::{Params, write_params_to_file};
 use crate::sample::trace_file::ParamTraceFileWriter;
 use crate::train::worker::train_worker;
+use crate::util::display_option::DisplayOption;
 use crate::util::threads::{InMessage, OutMessage, Threads, WorkerLauncher};
 
 #[derive(Clone)]
@@ -94,8 +95,9 @@ fn train(data: GwasData, config: &Config) -> Result<(), Error> {
             None
         };
     let n_threads = cmp::max(available_parallelism()?.get(), 3);
-    println!("Launching {} workers and burning in with {} iterations", n_threads,
-             config.shared.n_steps_burn_in);
+    println!("Launching {} workers. Configuration is: {} for iterations, {} for ratio.", n_threads,
+             DisplayOption::new(config.shared.n_steps_burn_in),
+             DisplayOption::new(config.shared.var_ratio_burn_in));
     let mut params = estimate_initial_params(&data, n_endos)?;
     println!("{}", params);
     let launcher =

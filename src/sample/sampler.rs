@@ -1,9 +1,16 @@
-use rand::Rng;
 use crate::data::{GwasData, Meta};
-use crate::sample::gibbs::GibbsSampler;
 use crate::params::Params;
+use crate::sample::gibbs::GibbsSampler;
 use crate::sample::var_stats::VarStats;
 use crate::sample::vars::{VarIndex, Vars};
+use rand::Rng;
+
+pub(crate) mod defaults {
+    pub(crate) const N_STEPS_BURN_IN: usize = 1000;
+    pub(crate) const VAR_RATIO_BURN_IN: f64 = 0.1;
+    pub(crate) const N_SAMPLES: usize = 2000;
+    pub(crate) const VAR_RATIO: f64 = 0.05;
+}
 
 pub(crate) struct Sampler<R: Rng> {
     gibbs: GibbsSampler<R>,
@@ -39,6 +46,22 @@ impl<R: Rng> Sampler<R> {
             (0..n_chains).map(|_| VarStats::new(meta.clone())).collect();
         Sampler { gibbs, var_stats_list }
     }
+    pub(crate) fn sample_n_ratio(&mut self, data: &GwasData, params: &Params, vars: &mut [Vars],
+                                n_steps: usize, ratio: f64, tracer: &mut dyn Tracer) {
+        self.sample_n(data, params, vars, n_steps, tracer);
+        let mut n_steps2 = 10;
+        loop {
+            let max_convergence =
+                VarStats::calculate_convergences(&self.var_stats_list)
+                    .fold(f64::NEG_INFINITY, f64::max);
+            if max_convergence < ratio {
+                break;
+            } else {
+                n_steps2 += n_steps2 / 10 + 1;
+            }
+            self.sample_n(data, params, vars, n_steps2, tracer);
+        }
+    }
     pub(crate) fn sample_n(&mut self, data: &GwasData, params: &Params, vars: &mut [Vars],
                            n_steps: usize, tracer: &mut dyn Tracer) {
         for _ in 0..n_steps {
@@ -68,4 +91,7 @@ impl<R: Rng> Sampler<R> {
         tracer.trace_convergence(&self.var_stats_list);
     }
     pub(crate) fn var_stats(&self) -> VarStats { VarStats::sum(&self.var_stats_list) }
+    pub(crate) fn reset_var_stats(&mut self) {
+        self.var_stats_list.iter_mut().for_each(|stats| stats.reset());
+    }
 }

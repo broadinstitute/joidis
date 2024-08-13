@@ -1,5 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
-use std::num::ParseFloatError;
+use std::num::{ParseFloatError, ParseIntError};
 use std::sync::mpsc::{RecvError, RecvTimeoutError, SendError};
 use std::time::SystemTimeError;
 use log::{ParseLevelError, SetLoggerError};
@@ -10,6 +10,7 @@ mod names {
     pub const TOML_DE: &str = "TOML deserialization error";
     pub const TOML_SER: &str = "TOML serialization error";
     pub const PARSE_FLOAT: &str = "parse float error";
+    pub const PARSE_INT: &str = "parse int error";
     pub const SEND: &str = "send error";
     pub const RECEIVE: &str = "receive error";
     pub const RECEIVE_TIMEOUT: &str = "receive timeout error";
@@ -25,6 +26,7 @@ pub enum ErrorKind {
     TomlDe,
     TomlSer,
     ParseFloat,
+    ParseInt,
     Send,
     Receive,
     ReceiveTimeout,
@@ -76,6 +78,13 @@ impl From<ParseFloatError> for Error {
     fn from(parse_float_error: ParseFloatError) -> Self {
         let message = parse_float_error.to_string();
         Error::new(ErrorKind::ParseFloat, message)
+    }
+}
+
+impl From<ParseIntError> for Error {
+    fn from(parse_int_error: ParseIntError) -> Self {
+        let message = parse_int_error.to_string();
+        Error::new(ErrorKind::ParseInt, message)
     }
 }
 
@@ -136,6 +145,7 @@ impl ErrorKind {
             ErrorKind::TomlDe => { names::TOML_DE }
             ErrorKind::TomlSer => { names::TOML_SER }
             ErrorKind::ParseFloat => { names::PARSE_FLOAT }
+            ErrorKind::ParseInt => { names::PARSE_INT }
             ErrorKind::Send => { names::SEND }
             ErrorKind::Receive => { names::RECEIVE }
             ErrorKind::ReceiveTimeout => { names::RECEIVE_TIMEOUT }

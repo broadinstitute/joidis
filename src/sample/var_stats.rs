@@ -197,4 +197,11 @@ impl VarStats {
         });
         e_ratio_iter.chain(t_ratio_iter)
     }
+    pub(crate) fn reset(&mut self) {
+        self.n = 0;
+        self.e_sums.elements.fill(0.0);
+        self.e2_sums.elements.fill(0.0);
+        self.t_sums.elements.fill(0.0);
+        self.t2_sums.elements.fill(0.0);
+    }
 }
