@@ -37,7 +37,8 @@ impl LogThinStats {
 
 impl Betas {
     pub(crate) fn new() -> Betas {
-        Betas { betas: Vec::new() }
+        let betas = Vec::new();
+        Betas { betas }
     }
     pub(crate) fn add(&mut self, beta: f64) {
         self.betas.push(beta);
