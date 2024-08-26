@@ -9,24 +9,30 @@ pub(crate) struct LogThinStats {
     auto_corrs: AutoCorrs,
 }
 
-const SHORT_LAG_BUF_LENGTH: usize = 16;
-const N_BIN_LEVELS: usize = 10;
+const SHORT_LAG_BUF_LENGTH: usize = 7;
+const N_BIN2_LEVELS: usize = 10;
+const N_BIN3_LEVELS: usize = 7;
 
 struct ShortLags {
     corr_sums: [f64; SHORT_LAG_BUF_LENGTH],
     x_diffs: VecDeque<f64>,
 }
 
-struct Bins {
-   bins: [[f64; 2]; N_BIN_LEVELS],
+struct Bins2 {
+    bins: [[f64; 2]; N_BIN2_LEVELS],
 }
+
+struct Bins3 {
+    bins: [[f64; 3]; N_BIN3_LEVELS],
+}
+
 struct LongLags {
-    bins_for_odd: Bins,
-    bins_for_even: Bins,
+    bins_for_odd: Bins3,
+    bins_for_even: Bins2,
 }
 struct AutoCorrs {
     short_lags: ShortLags,
-    long_lags: LongLags
+    long_lags: LongLags,
 }
 
 impl LogThinStats {
@@ -40,6 +46,7 @@ impl LogThinStats {
         LogThinStats { n, x_sum, var_sum, mean, variance, auto_corrs }
     }
     pub(crate) fn add(&mut self, x: f64) {
+        let n_old = self.n;
         self.n += 1;
         self.x_sum += x;
         self.var_sum += x.powi(2);
@@ -48,9 +55,11 @@ impl LogThinStats {
         let x_diff = x - self.mean;
         self.var_sum += (x - x_mean_previous) * x_diff;
         self.variance = self.var_sum / (self.n as f64);
+        self.auto_corrs.add_x_diff(n_old, x_diff);
     }
     pub(crate) fn mean(&self) -> f64 { self.mean }
     pub(crate) fn variance(&self) -> f64 { self.variance }
+    pub(crate) fn auto_corr(&self, lag: usize) -> f64 { self.auto_corrs.auto_corr(self.n, lag) }
 }
 
 impl ShortLags {
@@ -59,26 +68,38 @@ impl ShortLags {
         let x_diffs = VecDeque::with_capacity(SHORT_LAG_BUF_LENGTH);
         ShortLags { corr_sums, x_diffs }
     }
-    pub fn add_x_diff(&mut self, x_diff: f64) {
-        self.x_diffs.push_back(x_diff);
+    pub fn add_x_diff(&mut self, i: usize, x_diff: f64) {
+        for (j, x_diff_j) in self.x_diffs.iter().enumerate() {
+            self.corr_sums[j] += x_diff * x_diff_j;
+        }
+        if self.x_diffs.len() == SHORT_LAG_BUF_LENGTH {
+            self.x_diffs.pop_back();
+        }
+        self.x_diffs.push_front(x_diff);
     }
 }
 
-impl Bins {
-    pub fn new() -> Bins {
-        let bins = [[0.0; 2]; N_BIN_LEVELS];
-        Bins { bins }
+impl Bins2 {
+    pub fn new() -> Bins2 {
+        let bins = [[0.0; 2]; N_BIN2_LEVELS];
+        Bins2 { bins }
+    }
+}
+
+impl Bins3 {
+    pub fn new() -> Bins3 {
+        let bins = [[0.0; 3]; N_BIN3_LEVELS];
+        Bins3 { bins }
     }
 }
 
 impl LongLags {
     pub fn new() -> LongLags {
-        let bins_for_odd = Bins::new();
-        let bins_for_even = Bins::new();
+        let bins_for_odd = Bins3::new();
+        let bins_for_even = Bins2::new();
         LongLags { bins_for_odd, bins_for_even }
     }
-    pub fn add_x_diff(&mut self, x_diff: f64) {
-    }
+    pub fn add_x_diff(&mut self, x_diff: f64) {}
 }
 
 impl AutoCorrs {
@@ -87,7 +108,14 @@ impl AutoCorrs {
         let long_lags = LongLags::new();
         AutoCorrs { short_lags, long_lags }
     }
-    pub(crate) fn add_x_diff(&mut self, x_diff: f64) {
-        self.short_lags.add_x_diff(x_diff);
+    pub(crate) fn add_x_diff(&mut self, i: usize, x_diff: f64) {
+        self.short_lags.add_x_diff(i, x_diff);
+    }
+    pub(crate) fn auto_corr(&self, n: usize, lag: usize) -> f64 {
+        if lag <= SHORT_LAG_BUF_LENGTH {
+            self.short_lags.corr_sums[lag] / ((n + lag) as f64)
+        } else {
+            todo!()
+        }
     }
 }
