@@ -20,10 +20,12 @@ struct ShortLags {
 
 struct Bins2 {
     bins: [[f64; 2]; N_BIN2_LEVELS],
+    corr_sums: [f64; N_BIN2_LEVELS],
 }
 
 struct Bins3 {
     bins: [[f64; 3]; N_BIN3_LEVELS],
+    corr_sums: [f64; N_BIN3_LEVELS],
 }
 
 struct LongLags {
@@ -68,7 +70,7 @@ impl ShortLags {
         let x_diffs = VecDeque::with_capacity(SHORT_LAG_BUF_LENGTH);
         ShortLags { corr_sums, x_diffs }
     }
-    pub fn add_x_diff(&mut self, i: usize, x_diff: f64) {
+    pub fn add_x_diff(&mut self, x_diff: f64) {
         for (j, x_diff_j) in self.x_diffs.iter().enumerate() {
             self.corr_sums[j] += x_diff * x_diff_j;
         }
@@ -80,21 +82,57 @@ impl ShortLags {
 }
 
 impl Bins2 {
-    pub fn new() -> Bins2 {
+    fn new() -> Bins2 {
         let bins = [[0.0; 2]; N_BIN2_LEVELS];
-        Bins2 { bins }
+        let corr_sums = [0.0; N_BIN2_LEVELS];
+        Bins2 { bins, corr_sums }
+    }
+    fn add_x_diff(&mut self, i: usize, x_diff: f64) {
+        let mut i = i;
+        let mut sum = x_diff;
+        for bin_level in 0..N_BIN2_LEVELS {
+            let mut level_bins = self.bins[bin_level];
+            let i_bin = i % 2;
+            if i % 2 == 0 {
+                let sum_new = level_bins[0] + level_bins[1];
+                level_bins[i_bin] = sum;
+                sum = sum_new;
+                i = i / 2;
+            } else {
+                level_bins[i_bin] = sum;
+                break;
+            }
+        }
     }
 }
 
 impl Bins3 {
-    pub fn new() -> Bins3 {
+    fn new() -> Bins3 {
         let bins = [[0.0; 3]; N_BIN3_LEVELS];
-        Bins3 { bins }
+        let corr_sums = [0.0; N_BIN3_LEVELS];
+        Bins3 { bins, corr_sums }
+    }
+    fn add_x_diff(&mut self, i: usize, x_diff: f64) {
+        let mut i = i;
+        let mut sum = x_diff;
+        for bin_level in 0..N_BIN3_LEVELS {
+            let mut level_bins = self.bins[bin_level];
+            let i_bin = i % 3;
+            if i % 3 == 0 {
+                let sum_new = level_bins[0] + level_bins[1] + level_bins[2];
+                level_bins[i_bin] = sum;
+                sum = sum_new;
+                i = i / 3;
+            } else {
+                level_bins[i_bin] = sum;
+                break;
+            }
+        }
     }
 }
 
 impl LongLags {
-    pub fn new() -> LongLags {
+    fn new() -> LongLags {
         let bins_for_odd = Bins3::new();
         let bins_for_even = Bins2::new();
         LongLags { bins_for_odd, bins_for_even }
@@ -103,15 +141,15 @@ impl LongLags {
 }
 
 impl AutoCorrs {
-    pub(crate) fn new() -> AutoCorrs {
+    fn new() -> AutoCorrs {
         let short_lags = ShortLags::new();
         let long_lags = LongLags::new();
         AutoCorrs { short_lags, long_lags }
     }
-    pub(crate) fn add_x_diff(&mut self, i: usize, x_diff: f64) {
-        self.short_lags.add_x_diff(i, x_diff);
+    fn add_x_diff(&mut self, i: usize, x_diff: f64) {
+        self.short_lags.add_x_diff(x_diff);
     }
-    pub(crate) fn auto_corr(&self, n: usize, lag: usize) -> f64 {
+    fn auto_corr(&self, n: usize, lag: usize) -> f64 {
         if lag <= SHORT_LAG_BUF_LENGTH {
             self.short_lags.corr_sums[lag] / ((n + lag) as f64)
         } else {
