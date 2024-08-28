@@ -37,6 +37,11 @@ struct AutoCorrs {
     long_lags: LongLags,
 }
 
+enum Anchors {
+    Single(usize),
+    Double(usize, usize),
+}
+
 impl LogThinStats {
     pub(crate) fn new() -> LogThinStats {
         let n: usize = 0;
@@ -97,12 +102,26 @@ impl Bins2 {
                 let sum_new = level_bins[0] + level_bins[1];
                 level_bins[i_bin] = sum;
                 sum = sum_new;
-                i = i / 2;
+                i /= 2;
             } else {
                 level_bins[i_bin] = sum;
                 break;
             }
         }
+    }
+    fn anchors_for(lag: usize) -> Anchors {
+        for level1 in 0..(N_BIN2_LEVELS - 1) {
+            let lag1 = 2_usize.pow(level1 as u32);
+            let level2 = level1 + 1;
+            let lag2 = 2_usize.pow(level2 as u32);
+            if lag == lag2 {
+                return Anchors::Single(lag2);
+            } else if lag < lag2 {
+                return Anchors::Double(lag1, lag2);
+            }
+        }
+        Anchors::Double(2_usize.pow((N_BIN2_LEVELS - 1) as u32),
+                        2_usize.pow(N_BIN2_LEVELS as u32))
     }
 }
 
@@ -122,12 +141,26 @@ impl Bins3 {
                 let sum_new = level_bins[0] + level_bins[1] + level_bins[2];
                 level_bins[i_bin] = sum;
                 sum = sum_new;
-                i = i / 3;
+                i /= 3;
             } else {
                 level_bins[i_bin] = sum;
                 break;
             }
         }
+    }
+    fn anchors_for(lag: usize) -> Anchors {
+        for level1 in 0..(N_BIN3_LEVELS - 1) {
+            let lag1 = 3_usize.pow(level1 as u32);
+            let level2 = level1 + 1;
+            let lag2 = 3_usize.pow(level2 as u32);
+            if lag == lag2 {
+                return Anchors::Single(lag2);
+            } else if lag < lag2 {
+                return Anchors::Double(lag1, lag2);
+            }
+        }
+        Anchors::Double(3_usize.pow((N_BIN3_LEVELS - 1) as u32),
+                        3_usize.pow(N_BIN3_LEVELS as u32))
     }
 }
 
@@ -137,7 +170,10 @@ impl LongLags {
         let bins_for_even = Bins2::new();
         LongLags { bins_for_odd, bins_for_even }
     }
-    pub fn add_x_diff(&mut self, x_diff: f64) {}
+    pub fn add_x_diff(&mut self, i: usize, x_diff: f64) {
+        self.bins_for_even.add_x_diff(i, x_diff);
+        self.bins_for_odd.add_x_diff(i, x_diff);
+    }
 }
 
 impl AutoCorrs {
@@ -148,12 +184,36 @@ impl AutoCorrs {
     }
     fn add_x_diff(&mut self, i: usize, x_diff: f64) {
         self.short_lags.add_x_diff(x_diff);
+        self.long_lags.bins_for_even.add_x_diff(i, x_diff);
+        self.long_lags.bins_for_odd.add_x_diff(i, x_diff);
     }
     fn auto_corr(&self, n: usize, lag: usize) -> f64 {
         if lag <= SHORT_LAG_BUF_LENGTH {
-            self.short_lags.corr_sums[lag] / ((n + lag) as f64)
+            self.short_lags.corr_sums[lag] / ((n - lag) as f64)
+        } else if lag % 2 == 0 {
+            let bins2 = &self.long_lags.bins_for_even;
+            match Bins2::anchors_for(lag) {
+                Anchors::Single(lag) =>
+                    bins2.corr_sums[lag] / ((n / 2_usize.pow(lag as u32)) as f64),
+                Anchors::Double(lag1, lag2) => {
+                    let corr1 = bins2.corr_sums[lag1] / ((n / 2_usize.pow(lag as u32)) as f64);
+                    let corr2 = bins2.corr_sums[lag2] / ((n / 2_usize.pow(lag as u32)) as f64);
+                    ((corr2.ln() - corr1.ln()) * ((lag - lag1) as f64)
+                        / ((lag2 - lag1) as f64)).exp()
+                }
+            }
         } else {
-            todo!()
+            let bins3 = &self.long_lags.bins_for_odd;
+            match Bins3::anchors_for(lag) {
+                Anchors::Single(lag) =>
+                    bins3.corr_sums[lag] / ((n / 3_usize.pow(lag as u32)) as f64),
+                Anchors::Double(lag1, lag2) => {
+                    let corr1 = bins3.corr_sums[lag1] / ((n / 3_usize.pow(lag as u32)) as f64);
+                    let corr2 = bins3.corr_sums[lag2] / ((n / 3_usize.pow(lag as u32)) as f64);
+                    ((corr2.ln() - corr1.ln()) * ((lag - lag1) as f64)
+                        / ((lag2 - lag1) as f64)).exp()
+                }
+            }
         }
     }
 }
