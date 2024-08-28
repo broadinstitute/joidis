@@ -100,7 +100,9 @@ impl Bins2 {
             let i_bin = i % 2;
             if i % 2 == 0 {
                 let sum_new = level_bins[0] + level_bins[1];
+                let sum_old = level_bins[i_bin];
                 level_bins[i_bin] = sum;
+                self.corr_sums[bin_level] += x_diff * (sum - sum_old);
                 sum = sum_new;
                 i /= 2;
             } else {
@@ -139,7 +141,9 @@ impl Bins3 {
             let i_bin = i % 3;
             if i % 3 == 0 {
                 let sum_new = level_bins[0] + level_bins[1] + level_bins[2];
+                let sum_old = level_bins[i_bin];
                 level_bins[i_bin] = sum;
+                self.corr_sums[bin_level] += x_diff * (sum - sum_old);
                 sum = sum_new;
                 i /= 3;
             } else {
