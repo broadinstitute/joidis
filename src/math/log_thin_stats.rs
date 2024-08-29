@@ -56,12 +56,11 @@ impl LogThinStats {
         let n_old = self.n;
         self.n += 1;
         self.x_sum += x;
-        self.var_sum += x.powi(2);
         let x_mean_previous = self.mean;
         self.mean = self.x_sum / (self.n as f64);
         let x_diff = x - self.mean;
         self.var_sum += (x - x_mean_previous) * x_diff;
-        self.variance = self.var_sum / (self.n as f64);
+        self.variance = self.var_sum / ((self.n - 1) as f64);
         self.auto_corrs.add_x_diff(n_old, x_diff);
     }
     pub(crate) fn mean(&self) -> f64 { self.mean }
@@ -219,5 +218,23 @@ impl AutoCorrs {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_log_thin_stats() {
+        let mut stats = LogThinStats::new();
+        stats.add(1.0);
+        stats.add(2.0);
+        stats.add(3.0);
+        assert_eq!(stats.mean(), 2.0);
+        assert_eq!(stats.variance(), 1.0);
+        assert_eq!(stats.auto_corr(0), 1.0);
+        assert_eq!(stats.auto_corr(1), 0.0);
+        assert_eq!(stats.auto_corr(2), -0.5);
     }
 }
