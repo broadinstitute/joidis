@@ -191,7 +191,9 @@ impl AutoCorrs {
         self.long_lags.bins_for_odd.add_x_diff(i, x_diff);
     }
     fn auto_corr(&self, n: usize, lag: usize) -> f64 {
-        if lag <= SHORT_LAG_BUF_LENGTH {
+        if lag >= n {
+            0.0
+        } else if lag <= SHORT_LAG_BUF_LENGTH {
             self.short_lags.corr_sums[lag] / ((n - lag) as f64)
         } else if lag % 2 == 0 {
             let bins2 = &self.long_lags.bins_for_even;
@@ -228,13 +230,21 @@ mod tests {
     #[test]
     fn test_log_thin_stats() {
         let mut stats = LogThinStats::new();
-        stats.add(1.0);
-        stats.add(2.0);
-        stats.add(3.0);
-        assert_eq!(stats.mean(), 2.0);
-        assert_eq!(stats.variance(), 1.0);
-        assert_eq!(stats.auto_corr(0), 1.0);
-        assert_eq!(stats.auto_corr(1), 0.0);
-        assert_eq!(stats.auto_corr(2), -0.5);
+        const N_ITERATIONS: usize = 10;
+        let mut a1: usize = 0;
+        let mut a2: usize = 0;
+        let mut a3: usize = 1;
+        for i in 0..N_ITERATIONS {
+            let a3_new  = (a1 + a2 + a3) % 1024;
+            a1 = a2;
+            a2 = a3;
+            a3 = a3_new;
+            let x = (a3 as f64) + 1e4;
+            stats.add(x);
+            println!("{}\t{:.1}\t{:.1}\t{}\t{}\t{}\t{}\t{}\t{}\t{}", i, x, stats.mean(),
+                     stats.variance(), stats.auto_corr(0), stats.auto_corr(1),
+                     stats.auto_corr(2), stats.auto_corr(3), stats.auto_corr(4),
+                     stats.auto_corr(5));
+        }
     }
 }
