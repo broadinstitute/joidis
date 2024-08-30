@@ -1,5 +1,6 @@
 use crate::data::Meta;
 use crate::math::matrix::Matrix;
+use crate::math::polation_stats::PolationStats;
 use crate::params::Params;
 use crate::sample::vars::Vars;
 
@@ -11,6 +12,8 @@ pub(crate) struct VarStats {
     // e_t_sums: Matrix,
     t_sums: Matrix,
     t2_sums: Matrix,
+    e_polation_stats: Vec<Vec<PolationStats>>,
+    t_polation_stats: Vec<Vec<PolationStats>>,
 }
 
 pub(crate) struct SampledClassification {
@@ -18,6 +21,7 @@ pub(crate) struct SampledClassification {
     pub(crate) e_std: Vec<f64>,
     pub(crate) t_means: Vec<f64>,
 }
+
 
 impl VarStats {
     pub(crate) fn new(meta: Meta) -> VarStats {
@@ -27,11 +31,23 @@ impl VarStats {
         let n_traits = meta.n_traits();
         let e_sums: Matrix = Matrix::fill(n_data_points, n_endos, |_, _| 0.0);
         let e2_sums: Matrix = Matrix::fill(n_data_points, n_endos, |_, _| 0.0);
-        // let e_t_sums: Matrix = Matrix::fill(n_data_points, n_traits, |_, _| 0.0);
         let t_sums: Matrix = Matrix::fill(n_data_points, n_traits, |_, _| 0.0);
         let t2_sums: Matrix = Matrix::fill(n_data_points, n_traits, |_, _| 0.0);
-        VarStats { meta, n, e_sums, e2_sums, /* e_t_sums, */ t_sums, t2_sums }
+        let e_polation_stats: Vec<Vec<PolationStats>> =
+            Self::new_polation_stats_matrix(n_data_points, n_endos);
+        let t_polation_stats: Vec<Vec<PolationStats>> =
+            Self::new_polation_stats_matrix(n_data_points, n_endos);
+        VarStats {
+            meta, n, e_sums, e2_sums, t_sums, t2_sums, e_polation_stats, t_polation_stats
+        }
     }
+
+    fn new_polation_stats_matrix(n_data_points: usize, n_endos: usize) -> Vec<Vec<PolationStats>> {
+        (0..n_data_points).map(|_| {
+            (0..n_endos).map(|_| PolationStats::new()).collect()
+        }).collect()
+    }
+
     pub(crate) fn add(&mut self, vars: &Vars) {
         self.n += 1;
         let n_data_points = self.meta.n_data_points();
@@ -63,16 +79,29 @@ impl VarStats {
         let e2_sums = Matrix::fill(n_data_points, n_endos, |i, j| {
             stats_list.iter().map(|stats| stats.e2_sums[i][j]).sum()
         });
-        // let e_t_sums = Matrix::fill(n_data_points, n_traits, |i, j| {
-        //     stats_list.iter().map(|stats| stats.e_t_sums[i][j]).sum()
-        // });
         let t_sums = Matrix::fill(n_data_points, n_traits, |i, j| {
             stats_list.iter().map(|stats| stats.t_sums[i][j]).sum()
         });
         let t2_sums = Matrix::fill(n_data_points, n_traits, |i, j| {
             stats_list.iter().map(|stats| stats.t2_sums[i][j]).sum()
         });
-        VarStats { meta, n, e_sums, e2_sums, /* e_t_sums, */ t_sums, t2_sums }
+        let e_polation_stats = (0..n_data_points).map(|i_data_point| {
+            (0..n_endos).map(|i_endo| {
+                PolationStats::sum(
+                    &mut stats_list.iter()
+                        .map(|stats| &stats.e_polation_stats[i_data_point][i_endo])
+                )
+            }).collect()
+        }).collect();
+        let t_polation_stats = (0..n_data_points).map(|i_data_point| {
+            (0..n_traits).map(|i_trait| {
+                PolationStats::sum(
+                    &mut stats_list.iter()
+                        .map(|stats| &stats.t_polation_stats[i_data_point][i_trait])
+                )
+            }).collect()
+        }).collect();
+        VarStats { meta, n, e_sums, e2_sums, t_sums, t2_sums, e_polation_stats, t_polation_stats }
     }
     pub(crate) fn compute_new_params(&self) -> Params {
         // let meta = &self.meta;
