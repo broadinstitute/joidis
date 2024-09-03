@@ -115,11 +115,11 @@ impl VarStats {
     pub(crate) fn effective_sample_size(&self) -> f64 {
         let e_n_effs =
             self.e_polation_stats.iter().flat_map(|row| {
-                row.iter().map(|stats| 2.0*stats.auto_corr_sum() - 1.0)
+                row.iter().map(|stats| 2.0 * stats.auto_corr_sum() - 1.0)
             });
         let t_n_effs =
             self.t_polation_stats.iter().flat_map(|row| {
-                row.iter().map(|stats| 2.0*stats.auto_corr_sum() - 1.0)
+                row.iter().map(|stats| 2.0 * stats.auto_corr_sum() - 1.0)
             });
         (self.n as f64) / e_n_effs.chain(t_n_effs).reduce(f64::min).unwrap_or(1.0)
     }
