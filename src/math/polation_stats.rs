@@ -63,8 +63,6 @@ impl PolationStats {
         self.variance = self.var_sum / ((self.n - 1) as f64);
         self.covariances.add_x_diff(n_old, x_diff);
     }
-    pub(crate) fn mean(&self) -> f64 { self.mean }
-    pub(crate) fn variance(&self) -> f64 { self.variance }
     fn auto_corr_short_lags(&self, lag: usize) -> f64 {
         if lag == 0 {
             1.0
@@ -157,10 +155,10 @@ impl Bins2 {
         for level1 in 0..(N_BIN2_LEVELS - 1) {
             let level2 = level1 + 1;
             let lag2 = 2_usize.pow(level2 as u32);
-            if lag == lag2 {
-                return Anchors::Single(level2);
-            } else if lag < lag2 {
-                return Anchors::Double(level1, level2);
+            match lag .cmp(&lag2) {
+                std::cmp::Ordering::Equal => return Anchors::Single(level2),
+                std::cmp::Ordering::Less => return Anchors::Double(level1, level2),
+                _ => {}
             }
         }
         Anchors::Double(2_usize.pow((N_BIN2_LEVELS - 1) as u32),
@@ -197,10 +195,10 @@ impl Bins3 {
         for level1 in 0..(N_BIN3_LEVELS - 1) {
             let level2 = level1 + 1;
             let lag2 = 3_usize.pow(level2 as u32);
-            if lag == lag2 {
-                return Anchors::Single(level2);
-            } else if lag < lag2 {
-                return Anchors::Double(level1, level2);
+            match lag.cmp(&lag2) {
+                std::cmp::Ordering::Equal => return Anchors::Single(level2),
+                std::cmp::Ordering::Less => return Anchors::Double(level1, level2),
+                _ => {}
             }
         }
         Anchors::Double(3_usize.pow((N_BIN3_LEVELS - 1) as u32),
@@ -213,10 +211,6 @@ impl LongLags {
         let bins_for_odd = Bins3::new();
         let bins_for_even = Bins2::new();
         LongLags { bins_for_odd, bins_for_even }
-    }
-    pub fn add_x_diff(&mut self, i: usize, x_diff: f64) {
-        self.bins_for_even.add_x_diff(i, x_diff);
-        self.bins_for_odd.add_x_diff(i, x_diff);
     }
 }
 
@@ -303,7 +297,7 @@ mod tests {
             a3 = a3_new;
             let x = (a3 as f64) + 1e4;
             stats.add(x);
-            print!("{}\t{:.1}\t{:.1}\t{:.0}", i, x, stats.mean(), stats.variance());
+            print!("{}\t{:.1}\t{:.1}\t{:.0}", i, x, stats.mean, stats.variance);
             const LAG_MAX: usize = 24;
             for lag in 0..LAG_MAX {
                 print!("\t{:.4}", stats.auto_corr(lag));

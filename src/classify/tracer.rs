@@ -18,7 +18,8 @@ struct Writer {
 pub(crate) struct ClassifyTracer {
     e_writers: Vec<Writer>,
     t_writers: Vec<Writer>,
-    conv_writer: Result<BufWriter<File>, Error>
+    conv_writer: Result<BufWriter<File>, Error>,
+    n_effective_writer: Result<BufWriter<File>, Error>,
 }
 
 impl Writer {
@@ -59,7 +60,9 @@ impl ClassifyTracer {
             warn_if_err(write_iter_io(conv_writer, variable_names, "\t"));
             warn_if_err(writeln!(conv_writer))
         }
-        ClassifyTracer { e_writers, t_writers, conv_writer }
+        let n_effective_file_name = format!("{}_{}_trace_n_eff", out_file_name, var_id);
+        let n_effective_writer = try_writer(&n_effective_file_name);
+        ClassifyTracer { e_writers, t_writers, conv_writer, n_effective_writer }
     }
 }
 
@@ -95,9 +98,20 @@ impl Tracer for ClassifyTracer {
 
     fn trace_convergence(&mut self, var_stats_list: &[VarStats]) {
         if let Ok(ref mut writer) = self.conv_writer {
-            let convergence =
+            let convergences =
                 VarStats::calculate_convergences(var_stats_list);
-            warn_if_err(write_iter_io(writer, convergence, "\t"));
+            warn_if_err(write_iter_io(writer, convergences, "\t"));
+            warn_if_err(writeln!(writer));
+        }
+    }
+
+    fn trace_n_effective(&mut self, var_stats_list: &[VarStats]) {
+        if let Ok(ref mut writer) = self.n_effective_writer {
+            let n_effectives =
+                var_stats_list.iter().map(|var_stats: &VarStats|
+                    var_stats.effective_sample_size()
+                );
+            warn_if_err(write_iter_io(writer, n_effectives, "\t"));
             warn_if_err(writeln!(writer));
         }
     }

@@ -22,6 +22,7 @@ pub(crate) trait Tracer {
     fn trace_t(&mut self, i_trait: usize, t: f64, i_chain: usize);
     fn write_values(&mut self);
     fn trace_convergence(&mut self, var_stats_list: &[VarStats]);
+    fn trace_n_effective(&mut self, var_stats_list: &[VarStats]);
 }
 
 pub(crate) struct NoOpTracer;
@@ -37,6 +38,8 @@ impl Tracer for NoOpTracer {
     fn write_values(&mut self) {}
 
     fn trace_convergence(&mut self, _var_stats_list: &[VarStats]) {}
+
+    fn trace_n_effective(&mut self, _var_stats_list: &[VarStats]) {}
 }
 
 impl<R: Rng> Sampler<R> {
@@ -89,6 +92,7 @@ impl<R: Rng> Sampler<R> {
         }
         tracer.write_values();
         tracer.trace_convergence(&self.var_stats_list);
+        tracer.trace_n_effective(&self.var_stats_list);
     }
     pub(crate) fn var_stats(&self) -> VarStats { VarStats::sum(&self.var_stats_list) }
     pub(crate) fn reset_var_stats(&mut self) {

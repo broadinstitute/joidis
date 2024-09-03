@@ -38,7 +38,14 @@ impl VarStats {
         let t_polation_stats: Vec<Vec<PolationStats>> =
             Self::new_polation_stats_matrix(n_data_points, n_endos);
         VarStats {
-            meta, n, e_sums, e2_sums, t_sums, t2_sums, e_polation_stats, t_polation_stats
+            meta,
+            n,
+            e_sums,
+            e2_sums,
+            t_sums,
+            t2_sums,
+            e_polation_stats,
+            t_polation_stats,
         }
     }
 
@@ -58,12 +65,14 @@ impl VarStats {
                 let e_j_k = vars.es[i_data_point][i_endo];
                 self.e_sums[i_data_point][i_endo] += e_j_k;
                 self.e2_sums[i_data_point][i_endo] += e_j_k.powi(2);
+                self.e_polation_stats[i_data_point][i_endo].add(e_j_k);
             }
             for i_trait in 0..n_traits {
                 let t_j_i = vars.ts[i_data_point][i_trait];
                 // self.e_t_sums[i_data_point][i_trait] += e_j * t_j_i;
                 self.t_sums[i_data_point][i_trait] += t_j_i;
                 self.t2_sums[i_data_point][i_trait] += t_j_i.powi(2);
+                self.t_polation_stats[i_data_point][i_trait].add(t_j_i);
             }
         }
     }
@@ -102,6 +111,17 @@ impl VarStats {
             }).collect()
         }).collect();
         VarStats { meta, n, e_sums, e2_sums, t_sums, t2_sums, e_polation_stats, t_polation_stats }
+    }
+    pub(crate) fn effective_sample_size(&self) -> f64 {
+        let e_n_effs =
+            self.e_polation_stats.iter().flat_map(|row| {
+                row.iter().map(|stats| 2.0*stats.auto_corr_sum() - 1.0)
+            });
+        let t_n_effs =
+            self.t_polation_stats.iter().flat_map(|row| {
+                row.iter().map(|stats| 2.0*stats.auto_corr_sum() - 1.0)
+            });
+        (self.n as f64) / e_n_effs.chain(t_n_effs).reduce(f64::min).unwrap_or(1.0)
     }
     pub(crate) fn compute_new_params(&self) -> Params {
         // let meta = &self.meta;
@@ -169,11 +189,11 @@ impl VarStats {
         }
         let e_std =
             (0..n_endos).map(|i_endo|
-            (e2_mean[i_endo] - e_mean[i_endo].powi(2)).sqrt()).collect::<Vec<f64>>();
+                (e2_mean[i_endo] - e_mean[i_endo].powi(2)).sqrt()).collect::<Vec<f64>>();
         SampledClassification { e_mean, e_std, t_means }
     }
     pub(crate) fn calculate_convergences(var_stats_list: &[VarStats])
-        -> impl Iterator<Item=f64> + '_{
+                                         -> impl Iterator<Item=f64> + '_ {
         let meta = &var_stats_list[0].meta;
         let n_data_points = meta.n_data_points();
         let n_endos = meta.n_endos();
