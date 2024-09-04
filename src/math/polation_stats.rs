@@ -127,26 +127,51 @@ impl Covariances {
 mod tests {
     use super::*;
 
+    struct SuperSimpleShuffler {
+        a1: usize,
+        a2: usize,
+        a3: usize,
+    }
+
+    impl SuperSimpleShuffler {
+        fn new() -> SuperSimpleShuffler {
+            SuperSimpleShuffler { a1: 0, a2: 0, a3: 1 }
+        }
+    }
+
+    impl Iterator for SuperSimpleShuffler {
+        type Item = f64;
+
+        fn next(&mut self) -> Option<f64> {
+            let a3_new = (self.a1 + self.a2 + self.a3) % 1024;
+            self.a1 = self.a2;
+            self.a2 = self.a3;
+            self.a3 = a3_new;
+            Some((self.a3 as f64) / 1024.0)
+        }
+    }
+
     #[test]
     fn log_thin_stats() {
         let mut stats = PolationStats::new();
-        const N_ITERATIONS: usize = 1000;
-        let mut a1: usize = 0;
-        let mut a2: usize = 0;
-        let mut a3: usize = 1;
+        const N_ITERATIONS: usize = 10000000;
+        let mut shuffler = SuperSimpleShuffler::new();
+        let mut x: f64 = 0.0;
+        let mut show_every: usize = 0;
+        let mut last_shown: usize = 0;
         for i in 0..N_ITERATIONS {
-            let a3_new = (a1 + a2 + a3) % 1024;
-            a1 = a2;
-            a2 = a3;
-            a3 = a3_new;
-            let x = (a3 as f64) + 1e4;
+            x = 0.9 * x + shuffler.next().unwrap();
             stats.add(x);
-            print!("{}\t{:.1}\t{:.1}\t{:.0}", i, x, stats.mean, stats.variance);
-            const LAG_MAX: usize = 24;
-            for lag in 0..LAG_MAX {
-                print!("\t{:.4}", stats.auto_corr(lag));
+            if i - last_shown >= show_every {
+                last_shown = i;
+                show_every += show_every + show_every / 3 + 1;
+                print!("{}\t{:.4}\t{:.4}\t{:.4}", i, x, stats.mean, stats.variance);
+                const LAG_MAX: usize = 24;
+                for lag in 0..LAG_MAX {
+                    print!("\t{:.4}", stats.auto_corr(lag));
+                }
+                println!("\t{:.4}", stats.auto_corr_sum());
             }
-            println!("\t{:.4}", stats.auto_corr_sum());
         }
     }
 }
