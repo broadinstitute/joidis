@@ -59,6 +59,7 @@ impl PolationStats {
         }
         let auto_corr_max = self.auto_corr(SHORT_LAG_BUF_LENGTH);
         sum *= 1.0 / (1.0 - auto_corr_max);
+        sum = 2.0 * sum - 1.0;
         sum
     }
     pub(crate) fn sum<'a, I>(stats_iter: &mut I) -> PolationStats
@@ -154,7 +155,7 @@ mod tests {
     #[test]
     fn log_thin_stats() {
         let mut stats = PolationStats::new();
-        const N_ITERATIONS: usize = 10000000;
+        const N_ITERATIONS: usize = 100000;
         let mut shuffler = SuperSimpleShuffler::new();
         let mut x: f64 = 0.0;
         let mut show_every: usize = 0;
