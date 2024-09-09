@@ -13,9 +13,9 @@ license = "BSD-3-Clause"
 [dependencies]
 rand = "0.8.5"
 rand_distr = "0.4.3"
-clap = { version = "4.5.13", features = ["cargo"] }
-serde = { version = "1.0.204", features = ["derive", "rc"] }
-serde_json = "1.0.122"
+clap = { version = "4.5.17", features = ["cargo"] }
+serde = { version = "1.0.210", features = ["derive", "rc"] }
+serde_json = "1.0.128"
 toml = "0.8.19"
 log = "0.4.22"
 simplelog = "0.12.2"
