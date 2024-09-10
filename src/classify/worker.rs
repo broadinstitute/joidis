@@ -8,7 +8,7 @@ use crate::data::GwasData;
 use crate::options::config::{ClassifyConfig, SharedConfig};
 use crate::sample::vars::Vars;
 use crate::params::Params;
-use crate::sample::sampler::{Tracer, Sampler, NoOpTracer, defaults};
+use crate::sample::sampler::{Tracer, Sampler, NoOpTracer, StopConditions};
 use crate::classify::exact::calculate_mu;
 use crate::classify::tracer::ClassifyTracer;
 
@@ -49,17 +49,13 @@ pub(crate) fn classify_worker(data: &Arc<GwasData>, params: &Params, config: Cla
                         }
                         _ => { Box::new(NoOpTracer::new()) }
                     };
-                let n_steps_burn_in =
-                    config_shared.n_steps_burn_in.unwrap_or(defaults::N_STEPS_BURN_IN);
-                let var_ratio_burn_in =
-                    config_shared.var_ratio_burn_in.unwrap_or(defaults::VAR_RATIO_BURN_IN);
-                sampler.sample_n_ratio(&data, &params, &mut vars, n_steps_burn_in,
-                                       var_ratio_burn_in, tracer.as_mut());
+                let stop_conditions = StopConditions::for_burn_in(&config_shared);
+                sampler.sample_conditional(&data, &params, &mut vars, &stop_conditions,
+                                           tracer.as_mut());
                 sampler.reset_var_stats();
-                let n_samples = config.n_samples.unwrap_or(defaults::N_SAMPLES);
-                let var_ratio = config.var_ratio.unwrap_or(defaults::VAR_RATIO);
-                sampler.sample_n_ratio(&data, &params, &mut vars, n_samples, var_ratio,
-                                       tracer.as_mut());
+                let stop_conditions = StopConditions::for_classification(&config);
+                sampler.sample_conditional(&data, &params, &mut vars, &stop_conditions,
+                                           tracer.as_mut());
                 let sampled_classification =
                     sampler.var_stats().calculate_classification();
                 let e_mean_calculated =

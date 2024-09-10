@@ -31,6 +31,7 @@ pub(crate) struct FilesConfig {
 pub(crate) struct SharedConfig {
     pub(crate) n_endos: usize,
     pub(crate) n_steps_burn_in: Option<usize>,
+    pub(crate) n_steps_effective_burn_in: Option<usize>,
     pub(crate) var_ratio_burn_in: Option<f64>,
 }
 
@@ -48,6 +49,7 @@ pub(crate) struct TrainConfig {
 pub(crate) struct ClassifyConfig {
     pub(crate) params_override: Option<ParamsOverride>,
     pub(crate) n_samples: Option<usize>,
+    pub(crate) n_samples_effective: Option<usize>,
     pub(crate) var_ratio: Option<f64>,
     pub(crate) n_parallel: Option<usize>,
     pub(crate) out_file: String,

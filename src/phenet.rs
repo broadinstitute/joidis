@@ -12,8 +12,8 @@ use crate::params::{Params, ParamsOverride};
 mod defaults {
     pub(crate) mod shared {
         pub(crate) const N_STEPS_BURN_IN: usize = 10000;
+        pub(crate) const N_STEPS_EFFECTIVE_BURN_IN: usize = 100;
         pub(crate) const VAR_RATIO_BURN_IN: f64 = 0.1;
-
     }
     pub(crate) mod train {
         pub(crate) const N_SAMPLES_PER_ITERATION: usize = 100;
@@ -23,6 +23,7 @@ mod defaults {
 
     pub(crate) mod classify {
         pub(crate) const N_SAMPLES: usize = 100_000;
+        pub(crate) const N_SAMPLES_EFFECTIVE: usize = 1000;
         pub(crate) const VAR_RATIO: f64 = 0.05;
         pub(crate) const N_PARALLEL: Option<usize> = None;
     }
@@ -201,9 +202,11 @@ impl ConfigBuilder {
         let files = FilesConfig { trace, params };
         let gwas = self.build_mocasa_gwas_configs()?;
         let n_steps_burn_in = Some(defaults::shared::N_STEPS_BURN_IN);
+        let n_steps_effective_burn_in = Some(defaults::shared::N_STEPS_EFFECTIVE_BURN_IN);
         let var_ratio_burn_in = Some(defaults::shared::VAR_RATIO_BURN_IN);
         let n_endos = self.endo_names.len();
-        let shared = SharedConfig { n_endos, n_steps_burn_in, var_ratio_burn_in };
+        let shared =
+            SharedConfig { n_endos, n_steps_burn_in, n_steps_effective_burn_in, var_ratio_burn_in };
         let PhenetOpts { var_id_file, .. } = phenet_opts;
         let ids_file = var_id_file;
         let n_samples_per_iteration = defaults::train::N_SAMPLES_PER_ITERATION;
@@ -218,10 +221,11 @@ impl ConfigBuilder {
                 n_iterations_per_round,
                 n_rounds,
                 normalize_mu_to_one,
-                params_trace_file
+                params_trace_file,
             };
         let params_override: Option<ParamsOverride> = None;
         let n_samples = Some(defaults::classify::N_SAMPLES);
+        let n_samples_effective = Some(defaults::classify::N_SAMPLES_EFFECTIVE);
         let var_ratio: Option<f64> = Some(defaults::classify::VAR_RATIO);
         let n_parallel = defaults::classify::N_PARALLEL;
         let out_file = options.out_file.clone();
@@ -230,8 +234,15 @@ impl ConfigBuilder {
         let trace_ids: Option<Vec<String>> = None;
         let classify =
             ClassifyConfig {
-                params_override, n_samples, var_ratio, n_parallel, out_file, only_ids,
-                only_ids_file, trace_ids
+                params_override,
+                n_samples,
+                n_samples_effective,
+                var_ratio,
+                n_parallel,
+                out_file,
+                only_ids,
+                only_ids_file,
+                trace_ids,
             };
         Ok(Config { files, gwas, shared, train, classify })
     }
