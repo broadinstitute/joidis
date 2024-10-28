@@ -36,7 +36,7 @@ impl VarStats {
         let e_polation_stats: Vec<Vec<PolationStats>> =
             Self::new_polation_stats_matrix(n_data_points, n_endos);
         let t_polation_stats: Vec<Vec<PolationStats>> =
-            Self::new_polation_stats_matrix(n_data_points, n_endos);
+            Self::new_polation_stats_matrix(n_data_points, n_traits);
         VarStats {
             meta,
             n,
@@ -49,9 +49,9 @@ impl VarStats {
         }
     }
 
-    fn new_polation_stats_matrix(n_data_points: usize, n_endos: usize) -> Vec<Vec<PolationStats>> {
+    fn new_polation_stats_matrix(n_data_points: usize, n_vars: usize) -> Vec<Vec<PolationStats>> {
         (0..n_data_points).map(|_| {
-            (0..n_endos).map(|_| PolationStats::new()).collect()
+            (0..n_vars).map(|_| PolationStats::new()).collect()
         }).collect()
     }
 
