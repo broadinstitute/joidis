@@ -11,7 +11,7 @@ impl<'a, 'b, T: Display> Joiner<'a, 'b, T> {
     }
 }
 
-impl<'a, 'b, T: Display> Display for Joiner<'a, 'b, T> {
+impl<T: Display> Display for Joiner<'_, '_, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let iter = self.list.iter();
         write_iter_fmt(f, iter, self.sep)?;
