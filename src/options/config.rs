@@ -33,6 +33,7 @@ pub(crate) struct SharedConfig {
     pub(crate) n_steps_burn_in: Option<usize>,
     pub(crate) n_steps_effective_burn_in: Option<usize>,
     pub(crate) var_ratio_burn_in: Option<f64>,
+    pub(crate) t_pinned: Option<bool>
 }
 
 #[derive(Deserialize, Serialize, Clone)]

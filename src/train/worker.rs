@@ -20,14 +20,15 @@ pub(crate) fn train_worker(data: &Arc<GwasData>, mut params: Params,
     let mut sampler = Sampler::<ThreadRng>::new(&meta, rng, n_chains);
     let mut tracer = NoOpTracer::new();
     let stop_conditions = StopConditions::for_burn_in(config_shared);
+    let t_pinned = config_shared.t_pinned.unwrap_or(false);
     sampler.sample_conditional(data, &params, slice::from_mut(&mut vars), &stop_conditions,
-                               &mut tracer);
+                               &mut tracer, t_pinned);
     loop {
         let in_message = receiver.recv().unwrap();
         match in_message {
             MessageToWorker::TakeNSamples(n_samples) => {
                 sampler.sample_n(data, &params, slice::from_mut(&mut vars), n_samples,
-                                 &mut tracer);
+                                 &mut tracer, t_pinned);
                 let params_new = sampler.var_stats().compute_new_params();
                 sender
                     .send(MessageToCentral::new(i_thread, params_new))
@@ -36,7 +37,7 @@ pub(crate) fn train_worker(data: &Arc<GwasData>, mut params: Params,
             MessageToWorker::SetNewParams(params_new) => {
                 params = params_new;
                 sampler.sample_conditional(data, &params, slice::from_mut(&mut vars),
-                                           &stop_conditions, &mut tracer);
+                                           &stop_conditions, &mut tracer, t_pinned);
             }
             MessageToWorker::Shutdown => {
                 break;

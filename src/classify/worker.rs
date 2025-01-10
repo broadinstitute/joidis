@@ -50,12 +50,13 @@ pub(crate) fn classify_worker(data: &Arc<GwasData>, params: &Params, config: Cla
                         _ => { Box::new(NoOpTracer::new()) }
                     };
                 let stop_conditions = StopConditions::for_burn_in(&config_shared);
+                let t_pinned = config_shared.t_pinned.unwrap_or(false);
                 sampler.sample_conditional(&data, &params, &mut vars, &stop_conditions,
-                                           tracer.as_mut());
+                                           tracer.as_mut(), t_pinned);
                 sampler.reset_var_stats();
                 let stop_conditions = StopConditions::for_classification(&config);
                 sampler.sample_conditional(&data, &params, &mut vars, &stop_conditions,
-                                           tracer.as_mut());
+                                           tracer.as_mut(), t_pinned);
                 let sampled_classification =
                     sampler.var_stats().calculate_classification();
                 let e_mean_calculated =

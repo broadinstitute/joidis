@@ -205,8 +205,11 @@ impl ConfigBuilder {
         let n_steps_effective_burn_in = Some(defaults::shared::N_STEPS_EFFECTIVE_BURN_IN);
         let var_ratio_burn_in = Some(defaults::shared::VAR_RATIO_BURN_IN);
         let n_endos = self.endo_names.len();
+        let t_pinned: Option<bool> = None;
         let shared =
-            SharedConfig { n_endos, n_steps_burn_in, n_steps_effective_burn_in, var_ratio_burn_in };
+            SharedConfig {
+                n_endos, n_steps_burn_in, n_steps_effective_burn_in, var_ratio_burn_in, t_pinned
+            };
         let PhenetOpts { var_id_file, .. } = phenet_opts;
         let ids_file = var_id_file;
         let n_samples_per_iteration = defaults::train::N_SAMPLES_PER_ITERATION;

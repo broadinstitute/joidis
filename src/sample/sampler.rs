@@ -80,8 +80,9 @@ impl<R: Rng> Sampler<R> {
         Sampler { gibbs, var_stats_list }
     }
     pub(crate) fn sample_conditional(&mut self, data: &GwasData, params: &Params, vars: &mut [Vars],
-                                     stop_conditions: &StopConditions, tracer: &mut dyn Tracer) {
-        self.sample_n(data, params, vars, stop_conditions.n_samples, tracer);
+                                     stop_conditions: &StopConditions, tracer: &mut dyn Tracer,
+                                     t_pinned: bool) {
+        self.sample_n(data, params, vars, stop_conditions.n_samples, tracer, t_pinned);
         let mut n_steps2 = 10;
         loop {
             let max_convergence =
@@ -96,17 +97,17 @@ impl<R: Rng> Sampler<R> {
             } else {
                 n_steps2 += n_steps2 / 10 + 1;
             }
-            self.sample_n(data, params, vars, n_steps2, tracer);
+            self.sample_n(data, params, vars, n_steps2, tracer, t_pinned);
         }
     }
     pub(crate) fn sample_n(&mut self, data: &GwasData, params: &Params, vars: &mut [Vars],
-                           n_steps: usize, tracer: &mut dyn Tracer) {
+                           n_steps: usize, tracer: &mut dyn Tracer, t_pinned: bool) {
         for _ in 0..n_steps {
-            self.sample_one(data, params, vars, tracer)
+            self.sample_one(data, params, vars, tracer, t_pinned);
         }
     }
     pub(crate) fn sample_one(&mut self, data: &GwasData, params: &Params, vars: &mut [Vars],
-                             tracer: &mut dyn Tracer) {
+                             tracer: &mut dyn Tracer, t_pinned: bool) {
         for (i_chain, vars) in vars.iter_mut().enumerate() {
             for i_var in vars.indices() {
                 match i_var {
@@ -116,7 +117,8 @@ impl<R: Rng> Sampler<R> {
                         vars.es[i_data_point][i_endo] = e;
                     }
                     VarIndex::T { i_data_point, i_trait } => {
-                        let t = self.gibbs.draw_t(data, vars, params, i_data_point, i_trait);
+                        let t =
+                            self.gibbs.draw_t(data, vars, params, i_data_point, i_trait, t_pinned);
                         tracer.trace_t(i_trait, t, i_chain);
                         vars.ts[i_data_point][i_trait] = t;
                     }
