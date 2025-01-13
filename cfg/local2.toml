@@ -18,6 +18,9 @@ file = "/home/BROAD.MIT.EDU/oliverr/mocasa/gwas/aligned_adj_t2d.Mahajan2022_T2D_
 trace = "/home/BROAD.MIT.EDU/oliverr/mocasa/test/trace"
 params = "/home/BROAD.MIT.EDU/oliverr/mocasa/test/params"
 
+[shared]
+n_endos = 3
+
 [train]
 ids_file = "/home/BROAD.MIT.EDU/oliverr/mocasa/training_var_list"
 n_steps_burn_in = 20000

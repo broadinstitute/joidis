@@ -12,7 +12,7 @@ use crate::sample::vars::Vars;
 
 pub(crate) fn train_worker(data: &Arc<GwasData>, mut params: Params,
                            sender: Sender<MessageToCentral>, receiver: Receiver<MessageToWorker>,
-                           i_thread: usize, config_shared: &SharedConfig) {
+                           i_thread: usize, config_shared: &SharedConfig, t_pinned: bool) {
     let mut vars = Vars::initial_vars(data, &params);
     let rng = thread_rng();
     let meta = data.meta.clone();
@@ -20,7 +20,6 @@ pub(crate) fn train_worker(data: &Arc<GwasData>, mut params: Params,
     let mut sampler = Sampler::<ThreadRng>::new(&meta, rng, n_chains);
     let mut tracer = NoOpTracer::new();
     let stop_conditions = StopConditions::for_burn_in(config_shared);
-    let t_pinned = config_shared.t_pinned.unwrap_or(false);
     sampler.sample_conditional(data, &params, slice::from_mut(&mut vars), &stop_conditions,
                                &mut tracer, t_pinned);
     loop {

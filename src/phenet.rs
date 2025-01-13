@@ -205,11 +205,8 @@ impl ConfigBuilder {
         let n_steps_effective_burn_in = Some(defaults::shared::N_STEPS_EFFECTIVE_BURN_IN);
         let var_ratio_burn_in = Some(defaults::shared::VAR_RATIO_BURN_IN);
         let n_endos = self.endo_names.len();
-        let t_pinned: Option<bool> = None;
         let shared =
-            SharedConfig {
-                n_endos, n_steps_burn_in, n_steps_effective_burn_in, var_ratio_burn_in, t_pinned
-            };
+            SharedConfig { n_endos, n_steps_burn_in, n_steps_effective_burn_in, var_ratio_burn_in };
         let PhenetOpts { var_id_file, .. } = phenet_opts;
         let ids_file = var_id_file;
         let n_samples_per_iteration = defaults::train::N_SAMPLES_PER_ITERATION;
@@ -217,6 +214,7 @@ impl ConfigBuilder {
         let n_rounds = defaults::train::N_ROUNDS;
         let normalize_mu_to_one = true;
         let params_trace_file: Option<String> = None;
+        let t_pinned: Option<bool> = None;
         let train =
             TrainConfig {
                 ids_file,
@@ -225,6 +223,7 @@ impl ConfigBuilder {
                 n_rounds,
                 normalize_mu_to_one,
                 params_trace_file,
+                t_pinned,
             };
         let params_override: Option<ParamsOverride> = None;
         let n_samples = Some(defaults::classify::N_SAMPLES);
@@ -246,6 +245,7 @@ impl ConfigBuilder {
                 only_ids,
                 only_ids_file,
                 trace_ids,
+                t_pinned,
             };
         Ok(Config { files, gwas, shared, train, classify })
     }

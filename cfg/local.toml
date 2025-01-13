@@ -18,6 +18,9 @@ file = "/home/oliverr/phenet/gwas/aligned_adj_t2d.Mahajan2022_T2D_EU.txt"
 trace = "/mnt/c/Users/oliverr/mocasa/test/trace"
 params = "/mnt/c/Users/oliverr/mocasa/test/params"
 
+[shared]
+n_endos = 3
+
 [train]
 ids_file = "/home/oliverr/phenet/training_var_list"
 n_steps_burn_in = 20000

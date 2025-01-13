@@ -51,23 +51,24 @@ impl InMessage for MessageToCentral {
 struct TrainWorkerLauncher {
     data: Arc<GwasData>,
     params: Params,
-    config_shared: SharedConfig
+    config_shared: SharedConfig,
+    t_pinned: bool,
 }
 
 impl WorkerLauncher<MessageToCentral, MessageToWorker> for TrainWorkerLauncher {
     fn launch(self, in_sender: Sender<MessageToCentral>, out_receiver: Receiver<MessageToWorker>,
               i_thread: usize) {
         let TrainWorkerLauncher {
-            data, params, config_shared, ..
+            data, params, config_shared, t_pinned, ..
         } = self;
-        train_worker(&data, params, in_sender, out_receiver, i_thread, &config_shared);
+        train_worker(&data, params, in_sender, out_receiver, i_thread, &config_shared, t_pinned);
     }
 }
 
 impl TrainWorkerLauncher {
-    fn new(data: Arc<GwasData>, params: Params, config_shared: SharedConfig)
+    fn new(data: Arc<GwasData>, params: Params, config_shared: SharedConfig, t_pinned: bool)
         -> TrainWorkerLauncher {
-        TrainWorkerLauncher { data, params, config_shared }
+        TrainWorkerLauncher { data, params, config_shared, t_pinned }
     }
 }
 
@@ -100,8 +101,9 @@ fn train(data: GwasData, config: &Config) -> Result<(), Error> {
              DisplayOption::new(config.shared.var_ratio_burn_in));
     let mut params = estimate_initial_params(&data, n_endos)?;
     println!("{}", params);
+    let t_pinned = config.train.t_pinned.unwrap_or(false);
     let launcher =
-        TrainWorkerLauncher::new(data, params.clone(), config.shared.clone());
+        TrainWorkerLauncher::new(data, params.clone(), config.shared.clone(), t_pinned);
     let threads =
         Threads::<MessageToCentral, MessageToWorker>::new(launcher, n_threads);
     println!("Workers launched and burned in.");
