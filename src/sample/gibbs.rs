@@ -28,14 +28,19 @@ impl<R: Rng> GibbsSampler<R> {
     }
 
     pub(crate) fn draw_t(&mut self, data: &GwasData, vars: &Vars, params: &Params,
-                         i_data_point: usize, i_trait: usize) -> f64 {
+                         i_data_point: usize, i_trait: usize, pinned: bool) -> f64 {
         let mu_e = params.betas[i_trait] * vars.es[i_data_point];
         let var_e = params.sigmas[i_trait].powi(2);
         let mu_o = data.betas[i_data_point][i_trait];
-        let var_o = data.ses[i_data_point][i_trait].powi(2);
-        let variance = 1.0 / (1.0 / var_e + 1.0 / var_o);
-        let std_dev = variance.sqrt();
-        let mean = variance * (mu_e / var_e + mu_o / var_o);
-        Normal::new(mean, std_dev).unwrap().sample(&mut self.rng)
+        let se_o = data.ses[i_data_point][i_trait];
+        if se_o > 0.0 && !pinned {
+            let var_o = se_o.powi(2);
+            let variance = 1.0 / (1.0 / var_e + 1.0 / var_o);
+            let std_dev = variance.sqrt();
+            let mean = variance * (mu_e / var_e + mu_o / var_o);
+            Normal::new(mean, std_dev).unwrap().sample(&mut self.rng)
+        } else {
+            mu_o
+        }
     }
 }
